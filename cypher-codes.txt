@@ -1,0 +1,29 @@
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///node-联系人.csv" AS line
+create (t:联系人{nodeId:line.nodeId,节点类型:line.节点类型,tel:line.tel,juese:line.角色})
+
+create constraint on (t:联系人)
+assert t.nodeId is unique
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///node-个人.csv" AS line
+create (p:个人{nodeId:line.nodeId,节点类型:line.节点类型,身份证:line.身份证,姓名:line.姓名,是否不良:line.是否不良})
+
+create constraint on (p:个人)
+assert p.nodeId is unique
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM "file:///edges.csv" AS line
+match (from{nodeId:line.source}),(to{nodeId:line.target})
+create (from)-[:关系{edgeId:line.edgeId,关系类型:line.关系类型,创建时间:line.创建时间,更新时间:line.更新时间,资产id:line.资产id,放款日期:line.放款日期,最近联系时间:line.最近联系时间,联系次数:line.联系次数,关系:line.关系,申请日期:line.申请日期,次数:line.次数}]->(to)
+
+//删除所有节点和关系
+MATCH (n)
+OPTIONAL MATCH (n)-[r]-()
+DELETE n,r
+
+//删除所有重复节点
+MATCH (p:个人)
+WITH p.身份证 AS idNumber, COLLECT(p) AS branches
+WHERE SIZE(branches) > 1
+FOREACH (n IN branches | DETACH DELETE n);
